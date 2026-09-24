@@ -1,5 +1,5 @@
 blueprint:
-  name: Lights left on - Label based (Event Driven)
+  name: Lights left on - Label based
   description: >
     Monitors all light entities assigned to a selected label.
     When any light remains on continuously for the configured duration,
@@ -38,15 +38,11 @@ blueprint:
       selector:
         boolean:
 
-mode: parallel
-max: 10
+mode: single
 
 triggers:
-  - trigger: state
-    label_id: !input light_label
-    to: "on"
-    for:
-      minutes: !input duration_minutes
+  - trigger: time_pattern
+    minutes: "/1"
 
 actions:
   - variables:
