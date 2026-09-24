@@ -26,9 +26,9 @@ blueprint:
 
     notification_service:
       name: Notification service
-      description: The full notification service name (e.g., notify.mobile_app_pixel_8).
+      description: Choose the notification service/device to notify (e.g., notify.mobile_app_pixel_8).
       selector:
-        text:
+        action:
 
     turn_off_lights:
       name: Turn off lights
@@ -43,8 +43,8 @@ max: 10
 triggers:
   - trigger: template
     value_template: >
-      {% set label = '!input light_label' %}
-      {% set duration = (!input duration_minutes | int) * 60 %}
+      {% set label = label_input %}
+      {% set duration = (duration_input | int) * 60 %}
       {% set ns = namespace(lights=[]) %}
       {% for entity_id in label_entities(label) %}
         {% if entity_id.startswith('light.') and states(entity_id) == 'on' %}
@@ -55,6 +55,9 @@ triggers:
         {% endif %}
       {% endfor %}
       {{ ns.lights | count > 0 }}
+    variables:
+      label_input: !input light_label
+      duration_input: !input duration_minutes
 
 actions:
   - variables:
