@@ -1,9 +1,8 @@
 blueprint:
-  name: Lights left on - Label based
+  name: Lights left on - Label based (Event Driven)
   description: >
-    Monitors all light entities assigned to a selected Home Assistant label.
-    When a light remains on for the configured duration, a notification is
-    sent listing the affected lights. Optionally turns the lights off.
+    Monitors lights assigned to a label. When any light remains on continuously
+    for the configured duration, it triggers immediately to notify and/or turn off.
   domain: automation
 
   input:
@@ -32,53 +31,40 @@ blueprint:
 
     turn_off_lights:
       name: Turn off lights
-      description: Automatically turn off lights after sending the notification.
+      description: Automatically turn off the light after sending the notification.
       default: true
       selector:
         boolean:
 
-mode: single
+# 'queued' mode allows multiple lights left on at different times to be handled independently
+mode: queued
+max: 10
 
 triggers:
-  - trigger: time_pattern
-    minutes: "/1"
+  - trigger: state
+    entity_id:
+      label_id: !input light_label
+    to: "on"
+    for:
+      minutes: !input duration_minutes
 
 actions:
   - variables:
-      label_id: !input light_label
       minutes_input: !input duration_minutes
       turn_off_bool: !input turn_off_lights
-      timeout_seconds: "{{ (minutes_input | int(30)) * 60 }}"
+      # The trigger object gives us the exact entity that crossed the threshold
+      target_entity: "{{ trigger.entity_id }}"
+      target_name: "{{ state_attr(target_entity, 'friendly_name') or target_entity }}"
 
-      lights_to_notify: >
-        {% set ns = namespace(lights=[]) %}
-        {% for entity_id in label_entities(label_id) %}
-          {% if entity_id.startswith('light.') and states(entity_id) == 'on' %}
-            {% set elapsed = as_timestamp(now()) - as_timestamp(states[entity_id].last_changed) %}
-            {% if elapsed >= timeout_seconds | int and elapsed < (timeout_seconds | int + 60) %}
-              {% set ns.lights = ns.lights + [entity_id] %}
-            {% endif %}
-          {% endif %}
-        {% endfor %}
-        {{ ns.lights }}
-
+  # Extra safety check to ensure it's actually a light entity
   - condition: template
-    value_template: "{{ lights_to_notify | count > 0 }}"
-
-  - variables:
-      light_names: >
-        {{ expand(lights_to_notify)
-           | map(attribute='name')
-           | list
-           | join(', ') }}
+    value_template: "{{ target_entity.startswith('light.') }}"
 
   - action: !input notification_service
     data:
-      title: "💡 Lights left on"
+      title: "💡 Light left on"
       message: >
-        {{ light_names }}
-        {{ 'has' if lights_to_notify | count == 1 else 'have' }}
-        been on for {{ minutes_input | int }} minutes.
+        {{ target_name }} has been on for {{ minutes_input | int }} minutes.
 
   - if:
       - condition: template
@@ -86,4 +72,4 @@ actions:
     then:
       - action: light.turn_off
         target:
-          entity_id: "{{ lights_to_notify }}"
+          entity_id: "{{ target_entity }}"
