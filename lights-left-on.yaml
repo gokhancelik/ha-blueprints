@@ -56,7 +56,7 @@ actions:
       turn_off_bool: !input turn_off_lights
       timeout_seconds: "{{ (minutes_input | int(30)) * 60 }}"
 
-      lights_to_notify: >
+      lights_to_notify: >-
         {% set ns = namespace(lights=[]) %}
         {% for entity_id in label_entities(label_id) %}
           {% if entity_id.startswith('light.') and states(entity_id) == 'on' %}
@@ -68,7 +68,7 @@ actions:
         {% endfor %}
         {{ ns.lights }}
 
-      light_names: >
+      light_names: >-
         {{ expand(lights_to_notify)
            | map(attribute='name')
            | list
@@ -80,15 +80,16 @@ actions:
   - action: !input notification_service
     data:
       title: "💡 Lights left on"
-      message: >
+      message: >-
         {{ light_names }}
         {{ 'has' if lights_to_notify | count == 1 else 'have' }}
         been on for {{ minutes_input | int }} minutes.
 
-  - if:
-      - condition: template
-        value_template: "{{ turn_off_bool }}"
-    then:
-      - action: light.turn_off
-        target:
-          entity_id: "{{ lights_to_notify }}"
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ turn_off_bool }}"
+        sequence:
+          - action: light.turn_off
+            target:
+              entity_id: "{{ lights_to_notify }}"
