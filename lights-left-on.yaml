@@ -25,10 +25,11 @@ blueprint:
           mode: box
 
     notification_service:
-      name: Notification service
-      description: Choose the notification service/device to notify (e.g., notify.mobile_app_pixel_8).
+      name: Notification entity / device
+      description: Select the notification service or mobile app device to notify.
       selector:
-        action:
+        entity:
+          domain: notify
 
     turn_off_lights:
       name: Turn off lights
