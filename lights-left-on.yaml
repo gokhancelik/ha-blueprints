@@ -43,8 +43,7 @@ max: 10
 
 triggers:
   - trigger: state
-    target:
-      label_id: !input light_label
+    label_id: !input light_label
     to: "on"
     for:
       minutes: !input duration_minutes
