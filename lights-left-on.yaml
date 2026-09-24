@@ -24,12 +24,13 @@ blueprint:
           unit_of_measurement: minutes
           mode: box
 
-    notification_service:
+    notification_device:
       name: Notification entity / device
-      description: Select the notification service or mobile app device to notify.
+      description: Select the mobile app or notify entity to receive the alert.
       selector:
-        entity:
-          domain: notify
+        target:
+          entity:
+            domain: notify
 
     turn_off_lights:
       name: Turn off lights
@@ -72,7 +73,8 @@ actions:
   - condition: template
     value_template: "{{ lights_to_notify | count > 0 }}"
 
-  - action: !input notification_service
+  - action: notify.send_message
+    target: !input notification_device
     data:
       title: "💡 Lights left on"
       message: >-
